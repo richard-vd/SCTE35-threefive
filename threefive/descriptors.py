@@ -1,6 +1,7 @@
 """
 SCTE35 Splice Descriptors
 """
+import struct
 from bitn import BitBin, NBin
 from .segmentation import table20, table22
 from .tools import k_by_v, i2b, ifb, to_stderr
@@ -357,7 +358,7 @@ class SegmentationDescriptor(SpliceDescriptor):
         if upid_type in upid_map.keys():
             upid_id = upid_map[upid_type][1](bitbin, upid_length)
             if upid_type != 0x09:
-                return f"{upid_map[upid_type][0]}:{upid_id}"
+                return {upid_map[upid_type][0]: upid_id}
         return upid_id
 
     def _encode_segmentation_upid(self, nbin, upid_type, upid_length):
@@ -455,13 +456,37 @@ class SegmentationDescriptor(SpliceDescriptor):
             upids.append(segmentation_upid)
         return upids
 
-    @staticmethod
-    def _mpu(bitbin, upid_length):
-        b_c = upid_length << 3
+    def _private_SBSB(self, bitbin, upid_length):
         return {
-            "format identifier": bitbin.asint(32),
-            "private data": bitbin.asint(b_c - 32),
+            "private_cni": hex(bitbin.asint(16)),
+            "private_version": bitbin.asint(8),
+            "private_transmission_id": struct.unpack("<Q", bitbin.asbytes(64))[0],
+            "private_product_code": struct.unpack("<Q", bitbin.asbytes(64))[0],
+            "private_web_publication_key": bitbin.asdecodedhex(25 * 8).split("\0")[0],
         }
+
+    def _mpu(self, bitbin, upid_length):
+
+        format_identifier_map = {
+            0x53425342: ["SBSB", self._private_SBSB],
+        }
+
+        format_identifier = bitbin.asint(32)
+        mpu = {
+            "format identifier": format_identifier,
+        }
+        private_data = ""
+        if format_identifier in format_identifier_map.keys():
+            private_data = format_identifier_map[format_identifier][1](
+                bitbin, upid_length
+            )
+            format_identifier_name = format_identifier_map[format_identifier][0]
+            mpu[format_identifier_name] = private_data
+            return mpu
+
+        b_c = upid_length << 3
+        mpu["private data"] = bitbin.asint(b_c - 32)
+        return mpu
 
     @staticmethod
     def _eidr(bitbin, upid_length):

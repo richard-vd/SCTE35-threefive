@@ -460,11 +460,9 @@ class SegmentationDescriptor(SpliceDescriptor):
             upids.append(segmentation_upid)
         return upids
 
-    format_identifier_map = {}
-
     @staticmethod
     def _mpu(bitbin, upid_length):
-        fimap = SegmentationDescriptor.format_identifier_map
+        fimap = mpu_format_identifier_map
         fi = bitbin.asint(32)
         if fi in fimap.keys():
             private_data = fimap[fi][1](bitbin.asbites(upid_length * 8), upid_length)
@@ -507,6 +505,11 @@ descriptor_map = {
     3: TimeDescriptor,
     4: AudioDescriptor,
 }
+
+
+# map of MPU format identifiers and associated names and functions
+# see examples/upid/Private_Upid_Parsing.py
+mpu_format_identifier_map = {}
 
 
 def splice_descriptor(bites):

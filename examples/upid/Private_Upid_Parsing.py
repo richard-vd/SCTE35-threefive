@@ -1,7 +1,7 @@
 import struct
 from bitn import BitBin
 import threefive
-from threefive.descriptors import SegmentationDescriptor
+from threefive.descriptors import mpu_format_identifier_map
 
 
 """
@@ -31,10 +31,8 @@ def parse_private_upid_SBSB(bites, upid_length):
     }
 
 
-SegmentationDescriptor.format_identifier_map = {
-    # format_identifier, name, function
-    0x53425342: ["SBSB", parse_private_upid_SBSB],
-}
+# format_identifier, name, function
+mpu_format_identifier_map[0x53425342] = ["SBSB", parse_private_upid_SBSB]
 
 cuep = threefive.Cue(SBSB_mpu)
 cuep.decode()
